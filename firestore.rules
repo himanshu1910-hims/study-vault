@@ -1,0 +1,304 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerifiedSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidOptionalId(id) {
+      return id is string && id.size() <= 128 && (id == '' || id.matches('^[a-zA-Z0-9_\\-]+$'));
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function ownsParentFolder(folderId) {
+      return folderId == '' || (
+        isValidId(folderId) &&
+        exists(/databases/$(database)/documents/folders/$(folderId)) &&
+        get(/databases/$(database)/documents/folders/$(folderId)).data.userId == request.auth.uid
+      );
+    }
+
+    function ownsReferencedFile(fileId) {
+      return fileId == '' || (
+        isValidId(fileId) &&
+        exists(/databases/$(database)/documents/files/$(fileId)) &&
+        get(/databases/$(database)/documents/files/$(fileId)).data.userId == request.auth.uid
+      );
+    }
+
+    // Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll([
+          'userId', 'email', 'displayName', 'photoURL', 'totalStorageUsed', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'email', 'displayName', 'photoURL', 'totalStorageUsed', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && isValidId(data.userId) && data.userId == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.displayName is string && data.displayName.size() <= 100
+        && data.photoURL is string && data.photoURL.size() <= 1000
+        && data.totalStorageUsed is number && data.totalStorageUsed >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFolder(data) {
+      return data.keys().hasAll([
+          'id', 'userId', 'name', 'parentId', 'color', 'isFavorite', 'isTrash', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'name', 'parentId', 'color', 'isFavorite', 'isTrash', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.userId is string && isValidId(data.userId) && data.userId == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && isValidOptionalId(data.parentId) && data.parentId != data.id
+        && data.color is string && data.color.size() >= 1 && data.color.size() <= 30
+        && data.isFavorite is bool
+        && data.isTrash is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFile(data) {
+      return data.keys().hasAll([
+          'id', 'userId', 'folderId', 'name', 'originalName', 'size', 'mimeType',
+          'extension', 'chunkCount', 'textExcerpt', 'isFavorite', 'isTrash', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'folderId', 'name', 'originalName', 'size', 'mimeType',
+          'extension', 'chunkCount', 'textExcerpt', 'isFavorite', 'isTrash', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.userId is string && isValidId(data.userId) && data.userId == request.auth.uid
+        && isValidOptionalId(data.folderId)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 255
+        && data.originalName is string && data.originalName.size() >= 1 && data.originalName.size() <= 255
+        && data.size is number && data.size >= 0 && data.size <= 52428800
+        && data.mimeType is string && data.mimeType.size() >= 1 && data.mimeType.size() <= 120
+        && data.extension is string && data.extension.size() <= 20
+        && data.chunkCount is number && data.chunkCount >= 0 && data.chunkCount <= 200
+        && data.textExcerpt is string && data.textExcerpt.size() <= 25000
+        && data.isFavorite is bool
+        && data.isTrash is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFileChunk(data, parentFileId) {
+      return data.keys().hasAll(['id', 'fileId', 'userId', 'index', 'data', 'createdAt'])
+        && data.keys().hasOnly(['id', 'fileId', 'userId', 'index', 'data', 'createdAt'])
+        && isValidId(data.id)
+        && data.fileId is string && data.fileId == parentFileId
+        && data.userId is string && isValidId(data.userId) && data.userId == request.auth.uid
+        && data.index is number && data.index >= 0 && data.index <= 200
+        && data.data is string && data.data.size() >= 1 && data.data.size() <= 750000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidBriefing(data) {
+      return data.keys().hasAll([
+          'id', 'userId', 'folderId', 'title', 'sourceTitle', 'mode', 'voiceInfo',
+          'language', 'durationSeconds', 'summaryText', 'keyTakeaways', 'scriptText',
+          'audioFileId', 'isFavorite', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'folderId', 'title', 'sourceTitle', 'mode', 'voiceInfo',
+          'language', 'durationSeconds', 'summaryText', 'keyTakeaways', 'scriptText',
+          'audioFileId', 'isFavorite', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.userId is string && isValidId(data.userId) && data.userId == request.auth.uid
+        && isValidOptionalId(data.folderId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.sourceTitle is string && data.sourceTitle.size() <= 300
+        && data.mode is string && (data.mode == 'podcast' || data.mode == 'single')
+        && data.voiceInfo is string && data.voiceInfo.size() >= 1 && data.voiceInfo.size() <= 120
+        && data.language is string && data.language.size() >= 1 && data.language.size() <= 40
+        && data.durationSeconds is number && data.durationSeconds >= 0 && data.durationSeconds <= 7200
+        && data.summaryText is string && data.summaryText.size() >= 1 && data.summaryText.size() <= 10000
+        && data.keyTakeaways is list && data.keyTakeaways.size() <= 10
+        && (data.keyTakeaways.size() == 0 || (data.keyTakeaways[0] is string && data.keyTakeaways[0].size() <= 500))
+        && data.scriptText is string && data.scriptText.size() >= 1 && data.scriptText.size() <= 20000
+        && isValidOptionalId(data.audioFileId)
+        && data.isFavorite is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Connection Probe Read-Only Endpoint (for getDocFromServer boot check)
+    match /test/connection {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    // 1. Users Collection (PII strictly owner-only, no list)
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidUser(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'photoURL', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['totalStorageUsed', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'photoURL', 'totalStorageUsed', 'updatedAt'])
+        );
+      allow delete: if isVerifiedOwner(userId) && isValidId(userId);
+    }
+
+    // 2. Folders Collection
+    match /folders/{folderId} {
+      allow get: if isSignedIn() && isValidId(folderId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedSignedIn()
+        && isValidId(folderId)
+        && isValidFolder(incoming())
+        && incoming().id == folderId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && ownsParentFolder(incoming().parentId);
+      allow update: if isVerifiedSignedIn()
+        && isValidId(folderId)
+        && isValidFolder(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && ownsParentFolder(incoming().parentId)
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['color', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'color', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['parentId', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['isFavorite', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['isTrash', 'updatedAt'])
+        );
+      allow delete: if isVerifiedSignedIn() && isValidId(folderId) && existing().userId == request.auth.uid;
+    }
+
+    // 3. Files Collection + Chunked Binary Subcollection
+    match /files/{fileId} {
+      allow get: if isSignedIn() && isValidId(fileId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedSignedIn()
+        && isValidId(fileId)
+        && isValidFile(incoming())
+        && incoming().id == fileId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && ownsParentFolder(incoming().folderId);
+      allow update: if isVerifiedSignedIn()
+        && isValidId(fileId)
+        && isValidFile(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && ownsParentFolder(incoming().folderId)
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['folderId', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['isFavorite', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['isTrash', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['chunkCount', 'textExcerpt', 'updatedAt'])
+        );
+      allow delete: if isVerifiedSignedIn() && isValidId(fileId) && existing().userId == request.auth.uid;
+
+      // Master Gate Subcollection for Binary Chunks
+      match /chunks/{chunkId} {
+        allow get: if isSignedIn()
+          && isValidId(fileId)
+          && isValidId(chunkId)
+          && existing().userId == request.auth.uid
+          && get(/databases/$(database)/documents/files/$(fileId)).data.userId == request.auth.uid;
+        allow list: if false;
+        allow create: if isVerifiedSignedIn()
+          && isValidId(fileId)
+          && isValidId(chunkId)
+          && isValidFileChunk(incoming(), fileId)
+          && incoming().id == chunkId
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/files/$(fileId))
+          && get(/databases/$(database)/documents/files/$(fileId)).data.userId == request.auth.uid;
+        allow update: if false;
+        allow delete: if isVerifiedSignedIn()
+          && isValidId(fileId)
+          && isValidId(chunkId)
+          && existing().userId == request.auth.uid
+          && get(/databases/$(database)/documents/files/$(fileId)).data.userId == request.auth.uid;
+      }
+    }
+
+    // 4. Audio Briefings Collection
+    match /briefings/{briefingId} {
+      allow get: if isSignedIn() && isValidId(briefingId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedSignedIn()
+        && isValidId(briefingId)
+        && isValidBriefing(incoming())
+        && incoming().id == briefingId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && ownsParentFolder(incoming().folderId)
+        && ownsReferencedFile(incoming().audioFileId);
+      allow update: if isVerifiedSignedIn()
+        && isValidId(briefingId)
+        && isValidBriefing(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && ownsParentFolder(incoming().folderId)
+        && ownsReferencedFile(incoming().audioFileId)
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['folderId', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['isFavorite', 'updatedAt'])
+        );
+      allow delete: if isVerifiedSignedIn() && isValidId(briefingId) && existing().userId == request.auth.uid;
+    }
+  }
+}

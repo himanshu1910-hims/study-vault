@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and account preferences",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar URL",
+          "maxLength": 500
+        },
+        "totalStorageUsed": {
+          "type": "number",
+          "description": "Total bytes stored"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account creation ISO timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Account update ISO timestamp"
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "Folder": {
+      "title": "Folder",
+      "description": "Subject, chapter, or custom folder hierarchy",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique folder identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner UID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Folder display name",
+          "maxLength": 120
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Parent folder ID or empty/null for root",
+          "maxLength": 128
+        },
+        "color": {
+          "type": "string",
+          "description": "Optional folder tag color",
+          "maxLength": 30
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Whether folder is starred"
+        },
+        "isTrash": {
+          "type": "boolean",
+          "description": "Whether folder is in recycle bin"
+        },
+        "trashedAt": {
+          "type": "string",
+          "description": "Timestamp when moved to trash",
+          "maxLength": 60
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp",
+          "maxLength": 60
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last updated timestamp",
+          "maxLength": 60
+        }
+      },
+      "required": ["id", "userId", "name"]
+    },
+    "FileItem": {
+      "title": "FileItem",
+      "description": "Uploaded study document, note, presentation, or PDF metadata",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique file identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner UID"
+        },
+        "folderId": {
+          "type": "string",
+          "description": "ID of containing folder or empty string for root",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "File display name with extension",
+          "maxLength": 255
+        },
+        "originalName": {
+          "type": "string",
+          "description": "Original uploaded file name",
+          "maxLength": 255
+        },
+        "size": {
+          "type": "number",
+          "description": "File size in bytes"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type (e.g. application/pdf)",
+          "maxLength": 120
+        },
+        "extension": {
+          "type": "string",
+          "description": "File extension in lowercase (pdf, docx, png, etc)",
+          "maxLength": 20
+        },
+        "storagePath": {
+          "type": "string",
+          "description": "Firebase Cloud Storage storage path",
+          "maxLength": 500
+        },
+        "downloadURL": {
+          "type": "string",
+          "description": "Firebase Cloud Storage download URL or data URL",
+          "maxLength": 2000
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Starred file"
+        },
+        "isTrash": {
+          "type": "boolean",
+          "description": "In recycle bin"
+        },
+        "trashedAt": {
+          "type": "string",
+          "description": "Timestamp when moved to trash",
+          "maxLength": 60
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Upload ISO timestamp",
+          "maxLength": 60
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last updated timestamp",
+          "maxLength": 60
+        },
+        "lastOpenedAt": {
+          "type": "string",
+          "description": "Last opened ISO timestamp",
+          "maxLength": 60
+        }
+      },
+      "required": ["id", "userId", "name", "size", "mimeType"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User account profile and storage stats"
+    },
+    "/folders/{folderId}": {
+      "schema": "Folder",
+      "description": "User folder hierarchical structures"
+    },
+    "/files/{fileId}": {
+      "schema": "FileItem",
+      "description": "User uploaded document and notes records"
+    }
+  }
+}

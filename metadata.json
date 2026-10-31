@@ -1,0 +1,6 @@
+{
+  "name": "StudyVault - Notes Storage & Commute Audio Summaries",
+  "description": "Cloud study notes, folder hierarchy, PDF viewer, and personalized AI commute audio summaries powered by Firebase and Gemini TTS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

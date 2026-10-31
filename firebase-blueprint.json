@@ -1,0 +1,388 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile, account preferences, and cloud storage usage metrics",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified user email address",
+          "maxLength": 200
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar URL",
+          "maxLength": 1000
+        },
+        "totalStorageUsed": {
+          "type": "number",
+          "description": "Total bytes stored across uploaded documents and audio summaries"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account last updated server timestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "email",
+        "displayName",
+        "photoURL",
+        "totalStorageUsed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Folder": {
+      "title": "Folder",
+      "description": "Subject, topic, news category, or chapter folder hierarchy",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique folder identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Folder display name",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Parent folder ID or empty string for root index folder",
+          "maxLength": 128
+        },
+        "color": {
+          "type": "string",
+          "description": "Folder tag color name",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Whether folder is starred"
+        },
+        "isTrash": {
+          "type": "boolean",
+          "description": "Whether folder is in recycle bin"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated server timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "parentId",
+        "color",
+        "isFavorite",
+        "isTrash",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FileItem": {
+      "title": "FileItem",
+      "description": "Uploaded document, PDF, article, study note, or generated WAV audio metadata",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique file identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "folderId": {
+          "type": "string",
+          "description": "Containing folder ID or empty string for root index folder",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Display file name",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "originalName": {
+          "type": "string",
+          "description": "Original uploaded file name",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "size": {
+          "type": "number",
+          "description": "File size in bytes"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "IANA MIME type",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "extension": {
+          "type": "string",
+          "description": "Lowercase file extension without dot",
+          "maxLength": 20
+        },
+        "chunkCount": {
+          "type": "number",
+          "description": "Number of binary data chunks stored in subcollection"
+        },
+        "textExcerpt": {
+          "type": "string",
+          "description": "Extracted plain text content for search and AI audio summarization",
+          "maxLength": 25000
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Whether file is starred"
+        },
+        "isTrash": {
+          "type": "boolean",
+          "description": "Whether file is in recycle bin"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Upload server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modified server timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "folderId",
+        "name",
+        "originalName",
+        "size",
+        "mimeType",
+        "extension",
+        "chunkCount",
+        "textExcerpt",
+        "isFavorite",
+        "isTrash",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FileChunk": {
+      "title": "FileChunk",
+      "description": "Base64-encoded binary slice of an uploaded document or generated audio file",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Chunk document ID (e.g. chunk_0)",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileId": {
+          "type": "string",
+          "description": "Parent FileItem ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "index": {
+          "type": "number",
+          "description": "Zero-based chunk sequence index"
+        },
+        "data": {
+          "type": "string",
+          "description": "Base64-encoded binary payload chunk",
+          "minLength": 1,
+          "maxLength": 750000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Chunk creation server timestamp"
+        }
+      },
+      "required": ["id", "fileId", "userId", "index", "data", "createdAt"]
+    },
+    "AudioBriefing": {
+      "title": "AudioBriefing",
+      "description": "Personalized commute audio summary of news articles or study documents",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique briefing identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "folderId": {
+          "type": "string",
+          "description": "Associated StudyVault folder ID or empty string for root",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Generated episode title",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sourceTitle": {
+          "type": "string",
+          "description": "Source article headline, URL, or study document name",
+          "maxLength": 300
+        },
+        "mode": {
+          "type": "string",
+          "description": "Audio format mode (podcast or single)",
+          "enum": ["podcast", "single"],
+          "maxLength": 30
+        },
+        "voiceInfo": {
+          "type": "string",
+          "description": "Selected voice persona description",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "language": {
+          "type": "string",
+          "description": "Spoken summary language",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "durationSeconds": {
+          "type": "number",
+          "description": "Audio duration in seconds"
+        },
+        "summaryText": {
+          "type": "string",
+          "description": "Concise executive summary text",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "keyTakeaways": {
+          "type": "array",
+          "description": "List of up to 10 key bullet points"
+        },
+        "scriptText": {
+          "type": "string",
+          "description": "Spoken TTS script",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "audioFileId": {
+          "type": "string",
+          "description": "Reference ID of the stored WAV FileItem",
+          "maxLength": 128
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Starred commute episode"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modified server timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "folderId",
+        "title",
+        "sourceTitle",
+        "mode",
+        "voiceInfo",
+        "language",
+        "durationSeconds",
+        "summaryText",
+        "keyTakeaways",
+        "scriptText",
+        "audioFileId",
+        "isFavorite",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Private user account profile and storage quota tracking"
+    },
+    "/folders/{folderId}": {
+      "schema": "Folder",
+      "description": "Hierarchical folders for study subjects and news topics"
+    },
+    "/files/{fileId}": {
+      "schema": "FileItem",
+      "description": "Metadata for uploaded PDFs, notes, articles, and WAV audio files"
+    },
+    "/files/{fileId}/chunks/{chunkId}": {
+      "schema": "FileChunk",
+      "description": "Chunked binary storage for reliable cross-device file uploads"
+    },
+    "/briefings/{briefingId}": {
+      "schema": "AudioBriefing",
+      "description": "Personalized commute audio summaries and transcripts"
+    }
+  }
+}

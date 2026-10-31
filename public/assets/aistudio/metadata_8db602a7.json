@@ -1,0 +1,6 @@
+{
+  "name": "StudyVault - Personal Study Notes & Document Storage",
+  "description": "Personal digital library and cloud document storage with folder hierarchies, PDF viewing, file management, and instant search.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

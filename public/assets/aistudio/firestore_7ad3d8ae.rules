@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validation
+    function isValidUser(data) {
+      return data.userId == request.auth.uid
+        && data.email is string
+        && data.email.size() <= 200;
+    }
+
+    function isValidFolder(data) {
+      return data.userId == request.auth.uid
+        && data.id is string
+        && data.id.size() <= 128
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120;
+    }
+
+    function isValidFile(data) {
+      return data.userId == request.auth.uid
+        && data.id is string
+        && data.id.size() <= 128
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 255
+        && data.size is number
+        && data.size >= 0
+        && data.mimeType is string
+        && data.mimeType.size() <= 120;
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId);
+    }
+
+    // Folders Collection
+    match /folders/{folderId} {
+      allow get: if isSignedIn() && isValidId(folderId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(folderId) && isValidFolder(incoming());
+      allow update: if isSignedIn() && isValidId(folderId) && isValidFolder(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(folderId) && existing().userId == request.auth.uid;
+    }
+
+    // Files Collection
+    match /files/{fileId} {
+      allow get: if isSignedIn() && isValidId(fileId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(fileId) && isValidFile(incoming());
+      allow update: if isSignedIn() && isValidId(fileId) && isValidFile(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(fileId) && existing().userId == request.auth.uid;
+    }
+  }
+}
